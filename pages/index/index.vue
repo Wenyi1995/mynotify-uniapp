@@ -4,19 +4,19 @@
 			<uni-forms-item label="链接地址" name="url">
 				<uni-easyinput type="text" v-model="url" />
 			</uni-forms-item>
-			<uni-forms-item label="发送信息" name="message">
-				<input class="input" v-model="message" type="text" />
+			<uni-forms-item label="信息查询" name="message">
+				<uni-easyinput v-model="message" type="text" placeholder="服务器-服务名 eg. hk03-mysql" />
 			</uni-forms-item>
 		</uni-forms>
 		<span v-if="socket_status">socket 已经连接</span>
 		<span v-else>socket 没有连接</span>
 		<button @click="socket_start()">start socket</button>
 		<button @click="socket_close()">close socket</button>
-		<button @click="socket_send()">send data</button>
+		<button @click="socket_send()">信息查询</button>
 		<ul id="message_box">
-		  <li v-for="item in message_list">
-		    {{ item }}
-		  </li>
+			<li v-for="item in message_list">
+				{{ item }}
+			</li>
 		</ul>
 	</view>
 </template>
@@ -26,10 +26,10 @@
 		data() {
 			return {
 				title: 'Hello',
-				url: "http://192.168.31.79:3000",
+				url: "ws://47.108.88.145:8080/notify",
 				message: "",
 				socket_status: false,
-				message_list : []
+				message_list: []
 			}
 		},
 		onLoad() {
@@ -50,10 +50,18 @@
 				that.socket_status = false
 				console.log('WebSocket 已关闭！');
 			});
-			uni.onSocketMessage(function (res) {
-				that.message_list.unshift(res.data)
-				that.message_list = that.message_list.splice(0,10);
-				console.log(that.message_list)
+			uni.onSocketMessage(function(res) {
+				var info = JSON.parse(decodeURIComponent(res.data))
+				for (var i in info) {
+					var server_arr = i.split('-')
+					var done_info = '[' + info[i] + '] ' + server_arr["1"] + ' ' + server_arr["0"]
+					if (info[i] == "done") {
+						plus.push.createMessage(done_info, "",{cover:false,title:"some this done!"} )
+					}
+					that.message_list.unshift(done_info)
+					that.message_list = that.message_list.splice(0, 10);
+				}
+
 			});
 		},
 		methods: {
@@ -88,16 +96,9 @@
 			},
 			socket_send() {
 				if (this.socket_status) {
-					if (this.message) {
-						uni.sendSocketMessage({
-							data: this.message
-						});
-					} else {
-						uni.showToast({
-							title: "message 没有内容",
-							icon: "error"
-						})
-					}
+					uni.sendSocketMessage({
+						data: '{"cmd":"","data":"' + this.message + '"}'
+					});
 				} else {
 					uni.showToast({
 						title: "socket 没有连接",
