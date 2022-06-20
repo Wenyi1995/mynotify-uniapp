@@ -18,6 +18,7 @@
 				{{ item }}
 			</li>
 		</ul>
+		<button @click="clear()">clear screen</button>
 	</view>
 </template>
 
@@ -29,6 +30,7 @@
 				url: "ws://47.108.88.145:8080/notify",
 				message: "",
 				socket_status: false,
+				push_notice: true,
 				message_list: []
 			}
 		},
@@ -36,7 +38,7 @@
 			let that = this
 			uni.onSocketOpen(function(res) {
 				that.socket_status = true
-
+				that.push_notice = false
 				console.log('WebSocket连接已打开！');
 			});
 			uni.onSocketError(function(res) {
@@ -55,13 +57,14 @@
 				for (var i in info) {
 					var server_arr = i.split('-')
 					var done_info = '[' + info[i] + '] ' + server_arr["1"] + ' ' + server_arr["0"]
-					if (info[i] == "done") {
-						plus.push.createMessage(done_info, "",{cover:false,title:"some this done!"} )
+					if (that.push_notice && info[i] == "done") {
+						plus.push.createMessage(done_info, "",{cover:false,title:"some thing done!"} )
 					}
 					that.message_list.unshift(done_info)
-					that.message_list = that.message_list.splice(0, 10);
 				}
-
+					
+					that.push_notice = true
+					that.message_list = that.message_list.splice(0, 10);
 			});
 		},
 		methods: {
@@ -70,12 +73,6 @@
 				this.$refs.form.validate().then(res => {
 					uni.connectSocket({
 						url: this.url,
-						data() {
-							return {
-								x: '',
-								y: ''
-							};
-						},
 						header: {
 							'content-type': 'application/json'
 						},
@@ -96,6 +93,7 @@
 			},
 			socket_send() {
 				if (this.socket_status) {
+					this.push_notice = false
 					uni.sendSocketMessage({
 						data: '{"cmd":"","data":"' + this.message + '"}'
 					});
@@ -105,6 +103,9 @@
 						icon: "error"
 					})
 				}
+			},
+			clear(){
+				this.message_list = []
 			}
 		}
 	}
