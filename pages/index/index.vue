@@ -14,8 +14,8 @@
 		<button @click="socket_close()">close socket</button>
 		<button @click="socket_send()">信息查询</button>
 		<ul id="message_box">
-			<li v-for="item in message_list">
-				{{ item }}
+			<li v-for="(v,k) in message_list">
+				{{ v }}
 			</li>
 		</ul>
 		<button @click="clear()">clear screen</button>
@@ -59,14 +59,14 @@
 					for (var i in info['data']) {
 						var server_arr = i.split('-')
 						var done_info = '[' + info['data'][i] + '] ' + server_arr["1"] + ' ' + server_arr["0"]
-						console.log(platform)
-						console.log(info)
-						if (platform == 'android' && info['is_push'] && info['data'][i] == "done") {
-							plus.push.createMessage(done_info, "", {
+						if (platform == 'android' && info['is_push']) {
+							let option = {
 								cover: false,
-								sound:"system",
-								title: "some thing done!"
-							})
+								sound: "system",
+								title: "some thing " + info['data'][i] + "!"
+							}
+							plus.push.createMessage(done_info, "", option)
+							
 						}
 						that.message_list.unshift(done_info)
 					}
@@ -78,13 +78,12 @@
 			});
 		},
 		methods: {
-			socket_ping(){
-				this.timer = setInterval(function(){
-					console.log("ping")
+			socket_ping() {
+				this.timer = setInterval(function() {
 					uni.sendSocketMessage({
 						data: '{"cmd":"notify.ping"}'
 					});
-				},30000)
+				}, 30000)
 			},
 			socket_start() {
 				this.$refs.form.validate().then(res => {
