@@ -45,6 +45,7 @@
 					title: "WebSocket连接打开失败，请检查！",
 					icon: "error"
 				})
+				that.socket_status = false
 				console.log('WebSocket连接打开失败，请检查！');
 			});
 			uni.onSocketClose(function(res) {
@@ -86,7 +87,7 @@
 						,fail(){
 							that.socket_status = false
 							clearInterval(that.timer)
-							socket_start()
+							that.socket_start()
 						}
 					});
 				}, 30000)
@@ -123,8 +124,14 @@
 			},
 			socket_send() {
 				if (this.socket_status) {
+					var that = this
 					uni.sendSocketMessage({
-						data: '{"cmd":"notify.index","data":"' + this.message + '"}'
+						data: '{"cmd":"notify.index","data":"' + this.message + '"}',
+						fail(e){
+							that.socket_status = false
+							clearInterval(that.timer)
+							that.socket_start()
+						}
 					});
 				} else {
 					uni.showToast({
