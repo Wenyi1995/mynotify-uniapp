@@ -30,7 +30,7 @@
 				url: "ws://47.108.88.145:8080/notify",
 				message: "",
 				socket_status: false,
-				push_notice: true,
+				timer: false,
 				message_list: []
 			}
 		},
@@ -38,7 +38,6 @@
 			let that = this
 			uni.onSocketOpen(function(res) {
 				that.socket_status = true
-				that.push_notice = false
 				console.log('WebSocket连接已打开！');
 			});
 			uni.onSocketError(function(res) {
@@ -51,24 +50,42 @@
 			uni.onSocketClose(function(res) {
 				that.socket_status = false
 				console.log('WebSocket 已关闭！');
+				clearInterval(that.timer)
 			});
 			uni.onSocketMessage(function(res) {
 				var info = JSON.parse(decodeURIComponent(res.data))
-				for (var i in info) {
-					var server_arr = i.split('-')
-					var done_info = '[' + info[i] + '] ' + server_arr["1"] + ' ' + server_arr["0"]
-					if (that.push_notice && info[i] == "done") {
-						plus.push.createMessage(done_info, "",{cover:false,title:"some thing done!"} )
+				var platform = uni.getSystemInfoSync().platform
+				if (info['method'] == 'show') {
+					for (var i in info['data']) {
+						var server_arr = i.split('-')
+						var done_info = '[' + info['data'][i] + '] ' + server_arr["1"] + ' ' + server_arr["0"]
+						console.log(platform)
+						console.log(info)
+						if (platform == 'android' && info['is_push'] && info['data'][i] == "done") {
+							plus.push.createMessage(done_info, "", {
+								cover: false,
+								sound:"system",
+								title: "some thing done!"
+							})
+						}
+						that.message_list.unshift(done_info)
 					}
-					that.message_list.unshift(done_info)
-				}
-					
-					that.push_notice = true
+
 					that.message_list = that.message_list.splice(0, 10);
+				} else {
+					console.log(info)
+				}
 			});
 		},
 		methods: {
-
+			socket_ping(){
+				this.timer = setInterval(function(){
+					console.log("ping")
+					uni.sendSocketMessage({
+						data: '{"cmd":"notify.ping"}'
+					});
+				},30000)
+			},
 			socket_start() {
 				this.$refs.form.validate().then(res => {
 					uni.connectSocket({
@@ -79,6 +96,7 @@
 						protocols: ['protocol1'],
 						method: 'GET'
 					});
+					this.socket_ping()
 				}).catch(err => {
 					uni.showToast({
 						title: err,
@@ -93,9 +111,8 @@
 			},
 			socket_send() {
 				if (this.socket_status) {
-					this.push_notice = false
 					uni.sendSocketMessage({
-						data: '{"cmd":"","data":"' + this.message + '"}'
+						data: '{"cmd":"notify.index","data":"' + this.message + '"}'
 					});
 				} else {
 					uni.showToast({
@@ -104,7 +121,7 @@
 					})
 				}
 			},
-			clear(){
+			clear() {
 				this.message_list = []
 			}
 		}
