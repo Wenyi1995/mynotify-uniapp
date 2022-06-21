@@ -66,7 +66,7 @@
 								title: "some thing " + info['data'][i] + "!"
 							}
 							plus.push.createMessage(done_info, "", option)
-							
+
 						}
 						that.message_list.unshift(done_info)
 					}
@@ -79,29 +79,42 @@
 		},
 		methods: {
 			socket_ping() {
+				let that = this
 				this.timer = setInterval(function() {
 					uni.sendSocketMessage({
 						data: '{"cmd":"notify.ping"}'
+						,fail(){
+							that.socket_status = false
+							clearInterval(that.timer)
+							socket_start()
+						}
 					});
 				}, 30000)
 			},
 			socket_start() {
-				this.$refs.form.validate().then(res => {
-					uni.connectSocket({
-						url: this.url,
-						header: {
-							'content-type': 'application/json'
-						},
-						protocols: ['protocol1'],
-						method: 'GET'
-					});
-					this.socket_ping()
-				}).catch(err => {
+				if (!this.socket_status) {
+					this.$refs.form.validate().then(res => {
+						uni.connectSocket({
+							url: this.url,
+							header: {
+								'content-type': 'application/json'
+							},
+							protocols: ['protocol1'],
+							method: 'GET'
+						});
+						this.socket_ping()
+					}).catch(err => {
+						uni.showToast({
+							title: err,
+							icon: "error"
+						})
+					})
+				} else {
 					uni.showToast({
-						title: err,
+						title: "socket 已经连接",
 						icon: "error"
 					})
-				})
+				}
 
 
 			},
